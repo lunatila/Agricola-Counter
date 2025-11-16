@@ -20,22 +20,25 @@
       "requireFullScreen": true,
       "infoPlist": {
         "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationPortrait"
         ],
         "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationPortrait"
         ],
-        "UIRequiresFullScreen": true
+        "UIRequiresFullScreen": true,
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#4A7C59"
+        "backgroundImage": "./assets/adaptive-icon.png"
       },
       "package": "com.agricolacounter.app",
       "softwareKeyboardLayoutMode": "pan",
-      "screenOrientation": "sensorPortrait",
+      "screenOrientation": "portrait",
       "resizeableActivity": false,
       "navigationBar": {
         "visible": "immersive",
