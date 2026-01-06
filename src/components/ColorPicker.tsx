@@ -40,7 +40,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         onPress={() => setModalVisible(true)}
       >
         <Text style={styles.instructionText}>
-          Jogador {playerId + 1}: Toque para escolher sua cor
+          Click to choose a color
         </Text>
         <View style={[styles.colorPreview, { backgroundColor: currentColor }]} />
       </TouchableOpacity>
@@ -53,7 +53,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Escolha sua cor</Text>
+            <Text style={styles.modalTitle}>Pick your color</Text>
             <ScrollView contentContainerStyle={styles.colorGrid}>
               {COLORS.map((color) => (
                 <TouchableOpacity
@@ -67,12 +67,14 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                 />
               ))}
             </ScrollView>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.closeButtonText}>Fechar</Text>
-            </TouchableOpacity>
+            <View style={{ alignItems: 'center' }}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>Ready</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -121,7 +123,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 20,
     padding: 20,
-    width: '80%',
+    width: '50%',
     maxHeight: '70%',
   },
   modalTitle: {
@@ -155,9 +157,11 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     backgroundColor: '#4A7C59',
+    width: 150,
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 20,
     marginTop: 20,
+    alignSelf: 'center',
   },
   closeButtonText: {
     color: '#FFF',

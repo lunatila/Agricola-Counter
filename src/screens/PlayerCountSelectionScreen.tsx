@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, StatusBar, Platform, Animated } from 'react-native';
+import { View, Text, Image, StyleSheet, StatusBar, Platform, Animated, Dimensions } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import * as NavigationBar from 'expo-navigation-bar';
 import { RootStackParamList } from '../types';
 import { ImageButton } from '../components';
 import { useGame } from '../context/GameContext';
+import { useBackground } from '../context/BackgroundContext';
+import { BACKGROUND_WIDTH, BACKGROUND_HEIGHT } from '../constants/background';
 
 type PlayerCountSelectionScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -20,6 +22,7 @@ export const PlayerCountSelectionScreen: React.FC<
   PlayerCountSelectionScreenProps
 > = ({ navigation }) => {
   const { initializeGame } = useGame();
+  const { backgroundAnim, animateBackground } = useBackground();
   const buttonsOpacity = useRef(new Animated.Value(0)).current;
   const buttonsScale = useRef(new Animated.Value(0)).current;
 
@@ -27,18 +30,17 @@ export const PlayerCountSelectionScreen: React.FC<
     // Hide navigation bar on Android
     if (Platform.OS === 'android') {
       NavigationBar.setVisibilityAsync('hidden');
-      NavigationBar.setBehaviorAsync('overlay-swipe');
     }
   }, []);
 
-  // Animate buttons appearing when screen comes into focus
+  // Animate when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      // Reset animations
+      // Background já está em -200 (vindo do MainMenu)
+      // Apenas animar os botões aparecendo
       buttonsOpacity.setValue(0);
       buttonsScale.setValue(0);
 
-      // Animate buttons appearing with hammer effect
       Animated.parallel([
         Animated.timing(buttonsOpacity, {
           toValue: 1,
@@ -75,7 +77,7 @@ export const PlayerCountSelectionScreen: React.FC<
   };
 
   const handleGoBack = () => {
-    // Animate buttons disappearing before navigation
+    // Animate disappearing and slide background DOWN to 0
     Animated.parallel([
       Animated.timing(buttonsOpacity, {
         toValue: 0,
@@ -88,130 +90,115 @@ export const PlayerCountSelectionScreen: React.FC<
         useNativeDriver: true,
       }),
     ]).start(() => {
-      navigation.goBack();
+      // Animar background voltando para -100 (ExpansionSelect)
+      animateBackground(-100, 400).then(() => {
+        setTimeout(() => {
+          navigation.goBack();
+        }, 50);
+      });
     });
-  };
-
-  // Render player icons based on count
-  const renderPlayerIcons = (count: number) => {
-    return (
-      <View style={styles.playerIconsContainer}>
-        {Array.from({ length: count }).map((_, index) => (
-          <Image
-            key={index}
-            source={require('../../assets/images/player_icon.png')}
-            style={styles.playerIcon}
-            resizeMode="contain"
-          />
-        ))}
-      </View>
-    );
   };
 
   return (
     <>
       <StatusBar hidden={true} />
       <View style={styles.container}>
+        {/* Background image with animation */}
+        <Animated.Image
+          source={require('../../assets/images/background.png')}
+          style={[
+            styles.backgroundImage,
+            {
+              transform: [{ translateY: backgroundAnim }],
+            },
+          ]}
+          resizeMode="cover"
+        />
+
+        {/* Player count buttons */}
         <Animated.View
           style={[
-            styles.content,
+            styles.buttonContainer,
             {
               opacity: buttonsOpacity,
               transform: [{ scale: buttonsScale }],
             },
           ]}
         >
-        {/* Title */}
-        <Text style={styles.title}>Selecione o número de jogadores</Text>
-
-        {/* Player count buttons */}
-        <View style={styles.buttonContainer}>
           <ImageButton
-            imageSource={require('../../assets/images/play_button.png')}
+            imageSource={require('../../assets/images/2players.png')}
             onPress={() => handlePlayerCountSelect(2)}
             style={styles.button}
-          >
-            {renderPlayerIcons(2)}
-          </ImageButton>
+          />
 
           <ImageButton
-            imageSource={require('../../assets/images/play_button.png')}
+            imageSource={require('../../assets/images/3players.png')}
             onPress={() => handlePlayerCountSelect(3)}
             style={styles.button}
-          >
-            {renderPlayerIcons(3)}
-          </ImageButton>
+          />
 
           <ImageButton
-            imageSource={require('../../assets/images/play_button.png')}
+            imageSource={require('../../assets/images/4players.png')}
             onPress={() => handlePlayerCountSelect(4)}
             style={styles.button}
-          >
-            {renderPlayerIcons(4)}
-          </ImageButton>
-        </View>
-
-        {/* Back button */}
-        <View style={styles.backButtonContainer}>
-          <ImageButton
-            imageSource={require('../../assets/images/exit_button.png')}
-            text="Voltar"
-            onPress={handleGoBack}
-            style={styles.backButton}
           />
-        </View>
-      </Animated.View>
+        </Animated.View>
+
+        {/* Restart button in bottom left corner */}
+        <Animated.View
+          style={[
+            styles.restartButtonContainer,
+            {
+              opacity: buttonsOpacity,
+              transform: [{ scale: buttonsScale }],
+            },
+          ]}
+        >
+          <ImageButton
+            imageSource={require('../../assets/images/restart_button.png')}
+            onPress={handleGoBack}
+            style={styles.restartButton}
+          />
+        </Animated.View>
       </View>
     </>
   );
 };
+
+
+const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#b0c550',
   },
-  content: {
-    flex: 1,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#FFF',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
+  backgroundImage: {
+    position: 'absolute',
+    width: BACKGROUND_WIDTH,
+    height: BACKGROUND_HEIGHT,
+    top: 0,
+    left: 0,
   },
   buttonContainer: {
+    position: 'absolute',
+    bottom: '10%',  // Buttons positioned lower on screen
     width: '100%',
     alignItems: 'center',
-    gap: 20,
+    gap: 0,
   },
   button: {
-    width: 250,
+    width: width * 0.35,
+    height: width * 0.20,
+    marginVertical: -10,   // Reduz espaço entre botões
+  },
+  restartButtonContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+  },
+  restartButton: {
+    width: 60,
     height: 60,
-  },
-  playerIconsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-  },
-  playerIcon: {
-    width: 30,
-    height: 30,
-  },
-  backButtonContainer: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  backButton: {
-    width: 150,
-    height: 50,
   },
 });

@@ -8,6 +8,7 @@ import { Asset } from 'expo-asset';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { GameProvider } from './src/context/GameContext';
 import { AudioProvider } from './src/context/AudioContext';
+import { BackgroundProvider } from './src/context/BackgroundContext';
 import { RootStackParamList } from './src/types';
 import {
   MainMenuScreen,
@@ -15,6 +16,7 @@ import {
   PlayerCountSelectionScreen,
   GameScreen,
   ScoreScreen,
+  ExpansionSelectScreen,
 } from './src/screens';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -38,7 +40,7 @@ export default function App() {
       try {
         // Lock screen orientation to portrait (works on phones and tablets)
         await ScreenOrientation.lockAsync(
-          ScreenOrientation.OrientationLock.PORTRAIT
+          ScreenOrientation.OrientationLock.PORTRAIT_UP
         );
 
         // Load fonts
@@ -75,13 +77,27 @@ export default function App() {
           require('./assets/images/restart_button.png'),
           require('./assets/images/sound_button.png'),
           require('./assets/images/muted_button.png'),
-          require('./assets/images/score_button.png'),
           require('./assets/images/forward_button.png'),
           require('./assets/images/backward_button.png'),
+          require('./assets/images/2players.png'),
+          require('./assets/images/3players.png'),
+          require('./assets/images/4players.png'),
+          // Leaderboard panels
+          require('./assets/images/1place.png'),
+          require('./assets/images/2place.png'),
+          require('./assets/images/3place.png'),
+          require('./assets/images/4place.png'),
+          // Background images
+          require('./assets/images/background.png'),
+          require('./assets/images/backgroundMain.png'),
+          require('./assets/images/expansion_block.png'),
+          require('./assets/images/toggle_off.png'),
+          require('./assets/images/toggle_on.png'),
+          require('./assets/images/go_button.png'),
           // Other icons
           require('./assets/images/about_icon.png'),
           require('./assets/images/player_icon.png'),
-          require('./assets/images/background.png'),
+
         ]);
 
         await Promise.all(imageAssets);
@@ -93,6 +109,15 @@ export default function App() {
     }
 
     loadResourcesAsync();
+
+    // Add listener to ensure orientation stays locked (important for tablets)
+    const subscription = ScreenOrientation.addOrientationChangeListener(() => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    });
+
+    return () => {
+      ScreenOrientation.removeOrientationChangeListener(subscription);
+    };
   }, []);
 
   // Loading screen while resources load
@@ -105,36 +130,54 @@ export default function App() {
   }
 
   return (
-    <AudioProvider>
-      <GameProvider>
-        <NavigationContainer>
-          <StatusBar style="light" />
-          <Stack.Navigator
-            initialRouteName="MainMenu"
-            screenOptions={{
-              headerShown: false,
-              animation: 'fade',
+    <BackgroundProvider>
+      <AudioProvider>
+        <GameProvider>
+          <NavigationContainer
+            theme={{
+              dark: false,
+              colors: {
+                primary: '#4A7C59',
+                background: '#b0c550', // Ensure this matches your app background
+                card: '#b0c550',
+                text: '#000000',
+                border: 'transparent',
+                notification: '#ff0000',
+              },
             }}
           >
-            <Stack.Screen name="MainMenu" component={MainMenuScreen} />
-            <Stack.Screen name="About" component={AboutScreen} />
-            <Stack.Screen
-              name="PlayerCountSelection"
-              component={PlayerCountSelectionScreen}
-            />
-            <Stack.Screen
-              name="GameScreen"
-              component={GameScreen}
-              options={{ gestureEnabled: false }}
-            />
-            <Stack.Screen
-              name="ScoreScreen"
-              component={ScoreScreen}
-              options={{ gestureEnabled: false }}
-            />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </GameProvider>
-    </AudioProvider>
+            <StatusBar style="light" />
+            <Stack.Navigator
+              initialRouteName="MainMenu"
+              screenOptions={{
+                headerShown: false,
+                animation: 'none',  // Disable default animation to prevent flash
+                animationTypeForReplace: 'pop',  // No animation when replacing
+                gestureEnabled: false,  // Disable swipe gestures to prevent flash
+                contentStyle: { backgroundColor: '#b0c550' },  // Consistent background
+              }}
+            >
+              <Stack.Screen name="MainMenu" component={MainMenuScreen} />
+              <Stack.Screen name="About" component={AboutScreen} />
+              <Stack.Screen name="ExpansionSelect" component={ExpansionSelectScreen} />
+              <Stack.Screen
+                name="PlayerCountSelection"
+                component={PlayerCountSelectionScreen}
+              />
+              <Stack.Screen
+                name="GameScreen"
+                component={GameScreen}
+                options={{ gestureEnabled: false }}
+              />
+              <Stack.Screen
+                name="ScoreScreen"
+                component={ScoreScreen}
+                options={{ gestureEnabled: false }}
+              />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </GameProvider>
+      </AudioProvider>
+    </BackgroundProvider>
   );
 }

@@ -35,11 +35,13 @@ export interface GameState {
   players: Player[];
   currentPhase: 'color-selection' | 'resource-counting' | 'scoring';
   playersReady: boolean[];
+  isFarmersOfTheMoor: boolean;
 }
 
 export type RootStackParamList = {
   MainMenu: undefined;
   About: undefined;
+  ExpansionSelect: undefined;
   PlayerCountSelection: undefined;
   GameScreen: { playerCount: number };
   ScoreScreen: undefined;

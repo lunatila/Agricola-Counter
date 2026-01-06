@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, StatusBar, Platform, Animated } from 'react-native';
+import { View, Text, Image, StyleSheet, ScrollView, StatusBar, Platform, Animated, Dimensions } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import * as NavigationBar from 'expo-navigation-bar';
 import { RootStackParamList } from '../types';
 import { ImageButton } from '../components';
+import { useBackground } from '../context/BackgroundContext';
+import { BACKGROUND_WIDTH, BACKGROUND_HEIGHT, BACKGROUND_OFFSET } from '../constants/background';
 
 type AboutScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -16,6 +18,7 @@ interface AboutScreenProps {
 }
 
 export const AboutScreen: React.FC<AboutScreenProps> = ({ navigation }) => {
+  const { backgroundAnim, animateBackground } = useBackground();
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const contentScale = useRef(new Animated.Value(0)).current;
 
@@ -23,14 +26,14 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ navigation }) => {
     // Hide navigation bar on Android
     if (Platform.OS === 'android') {
       NavigationBar.setVisibilityAsync('hidden');
-      NavigationBar.setBehaviorAsync('overlay-swipe');
     }
   }, []);
 
   // Animate content appearing when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      // Reset animations
+      // Background já deve estar em -1000 (saindo do MainMenu)
+      // Apenas animar o conteúdo aparecendo
       contentOpacity.setValue(0);
       contentScale.setValue(0);
 
@@ -52,7 +55,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ navigation }) => {
   );
 
   const handleGoBack = () => {
-    // Animate content disappearing before navigation
+    // Animate content disappearing and background descending in parallel
     Animated.parallel([
       Animated.timing(contentOpacity, {
         toValue: 0,
@@ -65,7 +68,12 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ navigation }) => {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      navigation.goBack();
+      // Animar background descendo para 0 antes de voltar
+      animateBackground(0, 600).then(() => {
+        setTimeout(() => {
+          navigation.goBack();
+        }, 50);
+      });
     });
   };
 
@@ -73,57 +81,78 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ navigation }) => {
     <>
       <StatusBar hidden={true} />
       <View style={styles.container}>
-        <ScrollView contentContainerStyle={styles.content}>
-        <Animated.View
-          style={{
-            opacity: contentOpacity,
-            transform: [{ scale: contentScale }],
-          }}
-        >
-        {/* About icon */}
-        <View style={styles.iconContainer}>
-          <Image
-            source={require('../../assets/images/about_icon.png')}
-            style={styles.icon}
-            resizeMode="contain"
-          />
-        </View>
-
-        {/* About text */}
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>Sobre Agricola</Text>
-          <Text style={styles.description}>
-            Agricola é um jogo de tabuleiro em que os jogadores administram
-            fazendas, construem cercas, criam animais e alimentam suas famílias.
-          </Text>
-          <Text style={styles.description}>
-            Este aplicativo foi criado para facilitar a contagem de recursos e
-            pontuação durante suas partidas de Agricola.
-          </Text>
-          <Text style={styles.appInfo}>
-            Agricola Counter v1.0.0
-          </Text>
-        </View>
-        </Animated.View>
-
-        {/* Restart button in bottom left corner */}
-        <Animated.View
+        {/* Background image único */}
+        <Animated.Image
+          source={require('../../assets/images/background.png')}
           style={[
-            styles.restartButtonContainer,
+            styles.backgroundImage,
             {
-              opacity: contentOpacity,
-              transform: [{ scale: contentScale }],
+              transform: [{ translateY: backgroundAnim }],
             },
           ]}
-        >
-          <ImageButton
-            imageSource={require('../../assets/images/restart_button.png')}
-            onPress={handleGoBack}
-            style={styles.restartButton}
-            imageStyle={styles.restartButtonImage}
-          />
-        </Animated.View>
-      </ScrollView>
+          resizeMode="stretch"
+        />
+        <ScrollView contentContainerStyle={styles.content}>
+          <Animated.View
+            style={{
+              opacity: contentOpacity,
+              transform: [{ scale: contentScale }],
+            }}
+          >
+
+
+            {/* About text */}
+            <View style={styles.textContainer}>
+              {/* TÍTULO PRINCIPAL */}
+              <Text style={styles.title}>🌱 About Agricola Counter</Text>
+
+              {/* INTRODUÇÃO E PROPÓSITO - Com toque temático */}
+              <Text style={styles.description}>
+                Welcome to your new essential tool in the journey to build the best farm!
+                Agricola Counter was created so you can focus on planning your farm,
+                leaving the tedious counting of resources and points to us.
+              </Text>
+
+              {/* PRINCIPAIS FUNCIONALIDADES */}
+              <Text style={styles.description}>
+                Simplified Resource Control: Track all your resources (wood, clay, stone, food, etc.) quickly and intuitively. Never lose count of your sheep or grain again!
+                {/* Você pode substituir estes por bullet points programáticos se o seu estilo suportar */}
+              </Text>
+              <Text style={styles.description}>
+                Dynamic and Final Scoreboard: Record your buildings, animals, and crops for an instant score calculation. See the final ranking (with suspense) and discover who really built the most prosperous farm.
+              </Text>
+
+              {/* SEÇÃO DE CRÉDITOS E INFORMAÇÕES */}
+              <Text style={styles.description}>
+                This app is a fan project, made with passion by the Agricola community.
+                It aims exclusively to enhance the game experience.
+              </Text>
+
+              {/* INFORMAÇÕES DA VERSÃO */}
+              <Text style={styles.appInfo}>
+                Agricola Counter | Version 1.0.0
+              </Text>
+            </View>
+          </Animated.View>
+
+          {/* Restart button in bottom left corner */}
+          <Animated.View
+            style={[
+              styles.restartButtonContainer,
+              {
+                opacity: contentOpacity,
+                transform: [{ scale: contentScale }],
+              },
+            ]}
+          >
+            <ImageButton
+              imageSource={require('../../assets/images/restart_button.png')}
+              onPress={handleGoBack}
+              style={styles.restartButton}
+              imageStyle={styles.restartButtonImage}
+            />
+          </Animated.View>
+        </ScrollView>
       </View>
     </>
   );
@@ -134,23 +163,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#b0c550',
   },
+  backgroundImage: {
+    position: 'absolute',
+    width: BACKGROUND_WIDTH,
+    height: BACKGROUND_HEIGHT,
+    top: 0,
+    left: 0,
+  },
   content: {
     flexGrow: 1,
     padding: 20,
   },
-  iconContainer: {
-    alignItems: 'center',
-    marginVertical: 30,
-  },
-  icon: {
-    width: 150,
-    height: 150,
-  },
+
   textContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 15,
     padding: 20,
-    marginTop: 20,
+    marginTop: '90%',
   },
   title: {
     fontSize: 28,

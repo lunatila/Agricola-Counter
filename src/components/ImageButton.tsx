@@ -93,8 +93,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   image: {
-    width: 200,
-    height: 60,
+    width: '100%',    // Usa 100% do container pai
+    height: '100%',   // Usa 100% do container pai
   },
   textContainer: {
     position: 'absolute',

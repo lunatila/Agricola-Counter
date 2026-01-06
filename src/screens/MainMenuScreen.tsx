@@ -1,11 +1,14 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, StatusBar, BackHandler, Platform, Animated, TouchableOpacity } from 'react-native';
+import { View, Image, StyleSheet, StatusBar, BackHandler, Platform, Animated, TouchableOpacity, Dimensions } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import * as NavigationBar from 'expo-navigation-bar';
 import { RootStackParamList } from '../types';
 import { ImageButton } from '../components';
 import { useAudio } from '../context/AudioContext';
+import { useGame } from '../context/GameContext';
+import { useBackground } from '../context/BackgroundContext';
+import { BACKGROUND_WIDTH, BACKGROUND_HEIGHT, BACKGROUND_OFFSET } from '../constants/background';
 
 type MainMenuScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -20,7 +23,8 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
   navigation,
 }) => {
   const { isMuted, toggleMute } = useAudio();
-  const slideAnim = useRef(new Animated.Value(-1000)).current;
+  const { resetGame, gameState } = useGame();
+  const { backgroundAnim, animateBackground, setBackgroundPosition } = useBackground();
   const buttonsOpacity = useRef(new Animated.Value(0)).current;
   const buttonsScale = useRef(new Animated.Value(0)).current;
   const soundButtonScale = useRef(new Animated.Value(1)).current;
@@ -29,25 +33,15 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
     // Hide navigation bar on Android
     if (Platform.OS === 'android') {
       NavigationBar.setVisibilityAsync('hidden');
-      NavigationBar.setBehaviorAsync('overlay-swipe');
     }
   }, []);
 
   // Reset and animate when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      // Reset animations
-      slideAnim.setValue(-1000);
-      buttonsOpacity.setValue(0);
-      buttonsScale.setValue(0);
-
-      // Animate background sliding down
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 1000,
-        useNativeDriver: true,
-      }).start(() => {
-        // After background animation, animate buttons appearing with hammer effect
+      // Sempre animar o background voltando para 0 (posição do menu)
+      animateBackground(0, 1000).then(() => {
+        // Após animação do background, mostrar botões
         Animated.parallel([
           Animated.timing(buttonsOpacity, {
             toValue: 1,
@@ -62,10 +56,16 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
           }),
         ]).start();
       });
-    }, [slideAnim, buttonsOpacity, buttonsScale])
+
+      // Resetar o jogo aqui para garantir que o estado esteja limpo para a próxima partida
+      // Verificar se há jogadores para evitar loop infinito de updates
+      if (gameState.players && gameState.players.length > 0) {
+        resetGame();
+      }
+    }, [animateBackground, buttonsOpacity, buttonsScale, resetGame, gameState.players])
   );
 
-  const handleNavigation = (navigateFn: () => void) => {
+  const handleNavigation = (navigateFn: () => void, slideTarget: number = -1000) => {
     // Animate buttons disappearing first
     Animated.parallel([
       Animated.timing(buttonsOpacity, {
@@ -80,12 +80,11 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
       }),
     ]).start(() => {
       // Then animate background sliding up
-      Animated.timing(slideAnim, {
-        toValue: -1000,
-        duration: 600,
-        useNativeDriver: true,
-      }).start(() => {
-        navigateFn();
+      animateBackground(slideTarget, 600).then(() => {
+        // Small delay to ensure animation completes before navigation
+        setTimeout(() => {
+          navigateFn();
+        }, 50);
       });
     });
   };
@@ -116,13 +115,13 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
     <>
       <StatusBar hidden={true} />
       <View style={styles.container}>
-        {/* Background image at the top with animation */}
+        {/* Background image único */}
         <Animated.Image
           source={require('../../assets/images/background.png')}
           style={[
             styles.backgroundImage,
             {
-              transform: [{ translateY: slideAnim }],
+              transform: [{ translateY: backgroundAnim }],
             },
           ]}
           resizeMode="cover"
@@ -140,15 +139,15 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
         >
           <ImageButton
             imageSource={require('../../assets/images/play_button.png')}
-            text="Jogar"
-            onPress={() => handleNavigation(() => navigation.navigate('PlayerCountSelection'))}
+            text="Play"
+            onPress={() => handleNavigation(() => navigation.navigate('ExpansionSelect'), -100)}
             style={styles.button}
             imageStyle={styles.playButtonImage}
           />
 
           <ImageButton
             imageSource={require('../../assets/images/exit_button.png')}
-            text="Sair"
+            text="Exit"
             onPress={handleExit}
             style={styles.button}
             imageStyle={styles.exitButtonImage}
@@ -167,7 +166,7 @@ export const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
         >
           <ImageButton
             imageSource={require('../../assets/images/about_button.png')}
-            onPress={() => handleNavigation(() => navigation.navigate('About'))}
+            onPress={() => handleNavigation(() => navigation.navigate('About'), -200)}
             style={styles.aboutButton}
             imageStyle={styles.aboutButtonImage}
           />
@@ -213,14 +212,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#b0c550',
   },
   backgroundImage: {
-    width: '100%',
-    height: '80%',
+    position: 'absolute',
+    width: BACKGROUND_WIDTH,
+    height: BACKGROUND_HEIGHT,
     top: 0,
     left: 0
   },
   buttonContainer: {
     position: 'absolute',
-    bottom: '15%',
+    bottom: '10%',
     width: '100%',
     alignItems: 'center',
     gap: 20,

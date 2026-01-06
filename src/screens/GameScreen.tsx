@@ -48,6 +48,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   const backButtonScale = useRef(new Animated.Value(1)).current;
   const forwardButtonScale = useRef(new Animated.Value(1)).current;
 
+  // Click effect animations for each player's touch areas
+  const touchEffectAnims = useRef(
+    Array.from({ length: 4 }, () => ({
+      increment: new Animated.Value(0),
+      decrement: new Animated.Value(0),
+    }))
+  ).current;
+
   // Initialize game if players are empty (coming from restart)
   useEffect(() => {
     if (gameState.players.length === 0 || gameState.playerCount !== playerCount) {
@@ -66,24 +74,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({
     // Hide navigation bar on Android
     if (Platform.OS === 'android') {
       NavigationBar.setVisibilityAsync('hidden');
-      NavigationBar.setBehaviorAsync('overlay-swipe');
     }
   }, []);
 
-  // Animate resource transitions
+  // Animate resource transitions - REMOVED FADE EFFECT
   useEffect(() => {
-    Animated.sequence([
-      Animated.timing(resourceFadeAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(resourceFadeAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Reset fade animation value to 1 (fully visible) immediately
+    resourceFadeAnim.setValue(1);
   }, [currentResourceIndex]);
 
   const handleColorSelect = (playerId: number, color: string) => {
@@ -155,6 +152,21 @@ export const GameScreen: React.FC<GameScreenProps> = ({
       useNativeDriver: true,
     }).start();
   };
+
+  // Trigger touch effect animation
+  const triggerTouchEffect = (playerIndex: number, isIncrement: boolean) => {
+    const anim = isIncrement
+      ? touchEffectAnims[playerIndex].increment
+      : touchEffectAnims[playerIndex].decrement;
+
+    anim.setValue(0.2); // Transparência maior (era 1, agora 0.3)
+    Animated.timing(anim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
 
   // Calculate player area dimensions based on player count
   const getPlayerAreaStyle = (index: number) => {
@@ -256,6 +268,31 @@ export const GameScreen: React.FC<GameScreenProps> = ({
     }
   };
 
+  // Get indicator position style based on player index and type (increment/decrement)
+  const getIndicatorPositionStyle = (playerIndex: number, isIncrement: boolean) => {
+    if (playerCount === 2) {
+      // 2 players: vertical layout
+      if (playerIndex === 0) {
+        // Player 0 (top, rotated 180°): positions are inverted
+        // For this player, their "bottom" is visually at the top
+        return isIncrement ? styles.touchIndicatorPlusPlayer0 : styles.touchIndicatorMinusPlayer0;
+      } else {
+        // Player 1 (bottom, normal): positions are normal
+        return isIncrement ? styles.touchIndicatorPlusPlayer1 : styles.touchIndicatorMinusPlayer1;
+      }
+    } else {
+      // 3-4 players: horizontal layout
+      if (playerIndex % 2 === 0) {
+        // Left players (0, 2, rotated 90°)
+        return isIncrement ? styles.touchIndicatorPlusLeft : styles.touchIndicatorMinusLeft;
+      } else {
+        // Right players (1, 3, rotated -90°): positions are inverted
+        return isIncrement ? styles.touchIndicatorPlusRight : styles.touchIndicatorMinusRight;
+      }
+    }
+  };
+
+
   const renderColorSelection = () => {
     return (
       <View
@@ -287,8 +324,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         <View style={styles.centerButtonContainer}>
           <View style={{ transform: [{ rotate: playerCount >= 3 ? '90deg' : '0deg' }] }}>
             <ImageButton
-              imageSource={require('../../assets/images/play_button.png')}
-              text="Confirmar"
+              imageSource={require('../../assets/images/bonus_icon.png')}
               onPress={handleConfirmColors}
               style={styles.confirmButton}
             />
@@ -334,15 +370,69 @@ export const GameScreen: React.FC<GameScreenProps> = ({
 
               {/* Touch areas - Decrement and Increment */}
               <TouchableWithoutFeedback
-                onPress={() => currentResource && updateResource(player.id, currentResource.type as ResourceType, -1)}
+                onPress={() => {
+                  if (currentResource) {
+                    updateResource(player.id, currentResource.type as ResourceType, -1);
+                    triggerTouchEffect(index, false);
+                  }
+                }}
               >
-                <View style={getTouchAreaStyle(index, false)} />
+                <View style={getTouchAreaStyle(index, false)}>
+                  {/* Touch effect overlay */}
+                  <Animated.View
+                    style={[
+                      StyleSheet.absoluteFill,
+                      {
+                        backgroundColor: '#000000',
+                        opacity: touchEffectAnims[index].decrement,
+                        pointerEvents: 'none',
+                        borderRadius: 20,
+                        margin: 10,
+                      },
+                    ]}
+                  />
+                  {/* Decrement indicator */}
+                  <Text style={[
+                    styles.touchIndicatorMinus,
+                    getIndicatorPositionStyle(index, false),
+                    { transform: [{ rotate: getPlayerRotation(index) }] }
+                  ]}>
+                    -
+                  </Text>
+                </View>
               </TouchableWithoutFeedback>
 
               <TouchableWithoutFeedback
-                onPress={() => currentResource && updateResource(player.id, currentResource.type as ResourceType, 1)}
+                onPress={() => {
+                  if (currentResource) {
+                    updateResource(player.id, currentResource.type as ResourceType, 1);
+                    triggerTouchEffect(index, true);
+                  }
+                }}
               >
-                <View style={getTouchAreaStyle(index, true)} />
+                <View style={getTouchAreaStyle(index, true)}>
+                  {/* Touch effect overlay */}
+                  <Animated.View
+                    style={[
+                      StyleSheet.absoluteFill,
+                      {
+                        backgroundColor: '#000000',
+                        opacity: touchEffectAnims[index].increment,
+                        pointerEvents: 'none',
+                        borderRadius: 20,
+                        margin: 10,
+                      },
+                    ]}
+                  />
+                  {/* Increment indicator */}
+                  <Text style={[
+                    styles.touchIndicatorPlus,
+                    getIndicatorPositionStyle(index, true),
+                    { transform: [{ rotate: getPlayerRotation(index) }] }
+                  ]}>
+                    +
+                  </Text>
+                </View>
               </TouchableWithoutFeedback>
 
               <Animated.View
@@ -407,7 +497,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                   style={styles.navButton}
                 >
                   <Image
-                    source={require('../../assets/images/backward_button.png')}
+                    source={require('../../assets/images/restart_button.png')}
                     style={styles.navButtonImage}
                     resizeMode="contain"
                   />
@@ -425,7 +515,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                 style={styles.navButton}
               >
                 <Image
-                  source={require('../../assets/images/forward_button.png')}
+                  source={require('../../assets/images/go_button.png')}
                   style={styles.navButtonImage}
                   resizeMode="contain"
                 />
@@ -488,7 +578,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20, // Safety margin for navigation buttons
   },
   confirmButton: {
-    minWidth: 120,
+    minWidth: 100,
   },
   navigationButtons: {
     flexDirection: 'row',
@@ -522,5 +612,70 @@ const styles = StyleSheet.create({
     shadowColor: 'transparent',
     shadowOpacity: 0,
     elevation: 0,
+  },
+  touchIndicatorMinus: {
+    position: 'absolute',
+    fontSize: 80,
+    fontWeight: 'bold',
+    color: '#000000',
+    opacity: 0.25,
+    textAlign: 'center',
+    pointerEvents: 'none',
+  },
+  touchIndicatorPlus: {
+    position: 'absolute',
+    fontSize: 80,
+    fontWeight: 'bold',
+    color: '#000000',
+    opacity: 0.25,
+    textAlign: 'center',
+    pointerEvents: 'none',
+  },
+  // === ESTILOS PARA 2 JOGADORES ===
+  // Player 0 (topo, rotacionado 180°) - posições INVERTIDAS
+  touchIndicatorMinusPlayer0: {
+    bottom: '65%',     // Visual: aparece no topo da área do jogador (invertido)
+    left: '50%',
+    marginLeft: -20,
+  },
+  touchIndicatorPlusPlayer0: {
+    bottom: '65%',        // Visual: aparece na base da área do jogador (invertido)
+    left: '50%',
+    marginLeft: -20,
+  },
+  // Player 1 (embaixo, orientação normal) - posições NORMAIS
+  touchIndicatorMinusPlayer1: {
+    top: '65%',        // - no topo
+    left: '50%',
+    marginLeft: -20,
+  },
+  touchIndicatorPlusPlayer1: {
+    top: '65%',     // + embaixo
+    left: '50%',
+    marginLeft: -20,
+  },
+
+  // === ESTILOS PARA 3-4 JOGADORES ===
+  // Left players (0, 2) rotacionados 90° - posições NORMAIS
+  touchIndicatorMinusLeft: {
+    top: '15%',
+    left: '50%',
+    marginLeft: -20,
+  },
+  touchIndicatorPlusLeft: {
+    bottom: '15%',
+    left: '50%',
+    marginLeft: -20,
+  },
+  // Right players (1, 3) rotacionados -90°/270° - posições INVERTIDAS
+  touchIndicatorMinusRight: {
+    bottom: '15%',     // Invertido por causa da rotação -90°
+    left: '50%',
+    marginLeft: -20,
+  },
+  touchIndicatorPlusRight: {
+    top: '15%',        // Invertido por causa da rotação -90°
+    left: '50%',
+    marginLeft: -20,
   },
 });

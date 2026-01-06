@@ -29,20 +29,20 @@ const familyIcons = {
 
 // Resource names in Portuguese
 const resourceNames = {
-  soil: 'Campos',
-  fence: 'Cercas',
-  grain: 'Grãos',
-  vegetable: 'Legumes',
-  sheep: 'Ovelhas',
-  boar: 'Javali',
-  cattle: 'Gado',
-  empty: 'Espaços Vazios',
-  fencedStable: 'Estábulos Cercados',
-  clayHouse: 'Casas de Argila',
-  stoneHouse: 'Casas de Pedra',
-  familyMembers: 'Membros da Família',
-  bonus: 'Bônus',
-  starve: 'Fome',
+  soil: 'Fields',
+  fence: 'Fences',
+  grain: 'Grain',
+  vegetable: 'Vegetables',
+  sheep: 'Sheep',
+  boar: 'Wild Boar',
+  cattle: 'Cattle',
+  empty: 'Empty Spaces',
+  fencedStable: 'Fenced Stables',
+  clayHouse: 'Clay Rooms',
+  stoneHouse: 'Stone Rooms',
+  familyMembers: 'Family Members',
+  bonus: 'Bonus Points',
+  starve: 'Begging Cards',
 };
 
 // Initialize resources for a player
@@ -81,6 +81,7 @@ interface GameContextType {
   setPhase: (phase: GameState['currentPhase']) => void;
   calculateScores: () => void;
   resetGame: () => void;
+  setExpansion: (value: boolean) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -103,6 +104,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     players: [],
     currentPhase: 'color-selection',
     playersReady: [],
+    isFarmersOfTheMoor: false,
   });
 
   // Initialize game with specified number of players
@@ -122,6 +124,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       players,
       currentPhase: 'color-selection',
       playersReady: Array(playerCount).fill(false),
+      isFarmersOfTheMoor: gameState.isFarmersOfTheMoor, // Maintain selection
     });
   };
 
@@ -313,7 +316,15 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       players: [],
       currentPhase: 'color-selection',
       playersReady: [],
+      isFarmersOfTheMoor: false,
     });
+  };
+
+  const setExpansion = (value: boolean) => {
+    setGameState((prev) => ({
+      ...prev,
+      isFarmersOfTheMoor: value,
+    }));
   };
 
   const value: GameContextType = {
@@ -325,6 +336,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     setPhase,
     calculateScores,
     resetGame,
+    setExpansion,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

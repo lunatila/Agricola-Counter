@@ -5,8 +5,11 @@ import {
   Image,
   StyleSheet,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { Resource } from '../types';
+
+const { width } = Dimensions.get('window');
 
 interface ResourceCounterProps {
   resource: Resource;
@@ -129,32 +132,32 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 180,
-    paddingHorizontal: 20,
+    minWidth: 220,
+    paddingHorizontal: 30,
   },
   countContainerHorizontal: {
-    minWidth: 120,
-    paddingHorizontal: 10,
+    minWidth: 150,
+    paddingHorizontal: 20,
     marginBottom: 0,
   },
   countShadow: {
     position: 'absolute',
-    fontSize: 100,
+    fontSize: width * 0.14, // Responsive font size based on screen width
     fontFamily: 'Shadow',
     color: '#f9c32b',
     textAlign: 'center',
   },
   countShadowHorizontal: {
-    fontSize: 80,
+    fontSize: width * 0.13, // Slightly smaller for horizontal layout
   },
   countOutline: {
     position: 'absolute',
-    fontSize: 100,
+    fontSize: width * 0.14, // Responsive font size based on screen width
     fontFamily: 'Outline',
     color: '#000000',
     textAlign: 'center',
   },
   countOutlineHorizontal: {
-    fontSize: 80,
+    fontSize: width * 0.13, // Slightly smaller for horizontal layout
   },
 });
