@@ -1,14 +1,9 @@
-import React, { useRef } from 'react';
-import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-  Animated,
-  View,
-} from 'react-native';
+import React from 'react';
+import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, Animated, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { usePressAnimation } from '../hooks';
+import { Colors } from '../constants/colors';
+import { s } from '../utils/scale';
 
 interface CustomButtonProps {
   title: string;
@@ -18,6 +13,11 @@ interface CustomButtonProps {
   variant?: 'primary' | 'secondary';
 }
 
+const GRADIENT_COLORS: Record<'primary' | 'secondary', [string, string, string]> = {
+  primary: ['#5A9D6A', '#4A7C59', '#3A5C49'],
+  secondary: ['#9B5513', '#8B4513', '#7B3513'],
+};
+
 export const CustomButton: React.FC<CustomButtonProps> = ({
   title,
   onPress,
@@ -25,52 +25,25 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
   textStyle,
   variant = 'primary',
 }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 3,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const gradientColors: [string, string, string] = variant === 'primary'
-    ? ['#5A9D6A', '#4A7C59', '#3A5C49']
-    : ['#9B5513', '#8B4513', '#7B3513'];
+  const { onPressIn, onPressOut, animatedStyle } = usePressAnimation(0.95);
 
   return (
-    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }]}>
+    <Animated.View style={animatedStyle}>
       <TouchableOpacity
         style={[styles.button, style]}
         onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
         activeOpacity={1}
       >
         <LinearGradient
-          colors={gradientColors}
+          colors={GRADIENT_COLORS[variant]}
           style={styles.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
         >
           <View style={styles.buttonShadow} />
-          <Text
-            style={[
-              styles.buttonText,
-              textStyle,
-            ]}
-          >
-            {title}
-          </Text>
+          <Text style={[styles.buttonText, textStyle]}>{title}</Text>
         </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
@@ -79,21 +52,21 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 12,
-    minWidth: 200,
+    borderRadius: s(12),
+    minWidth: s(200),
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 6,
     overflow: 'hidden',
   },
   gradient: {
-    paddingVertical: 15,
-    paddingHorizontal: 30,
+    paddingVertical: s(15),
+    paddingHorizontal: s(30),
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: s(12),
   },
   buttonShadow: {
     position: 'absolute',
@@ -104,9 +77,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   buttonText: {
-    fontSize: 18,
+    fontSize: s(18),
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: Colors.white,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,

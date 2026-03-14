@@ -1,17 +1,16 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, StatusBar, Platform, Animated, Dimensions } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, StatusBar, Animated } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
-import * as NavigationBar from 'expo-navigation-bar';
 import { RootStackParamList } from '../types';
 import { ImageButton } from '../components';
 import { useBackground } from '../context/BackgroundContext';
-import { BACKGROUND_WIDTH, BACKGROUND_HEIGHT, BACKGROUND_OFFSET } from '../constants/background';
+import { useAndroidNavBar, useContentAnimation } from '../hooks';
+import { getBackgroundSize } from '../constants/background';
+import { Colors } from '../constants/colors';
+import { s } from '../utils/scale';
 
-type AboutScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'About'
->;
+type AboutScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'About'>;
 
 interface AboutScreenProps {
   navigation: AboutScreenNavigationProp;
@@ -19,140 +18,81 @@ interface AboutScreenProps {
 
 export const AboutScreen: React.FC<AboutScreenProps> = ({ navigation }) => {
   const { backgroundAnim, animateBackground } = useBackground();
-  const contentOpacity = useRef(new Animated.Value(0)).current;
-  const contentScale = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    // Hide navigation bar on Android
-    if (Platform.OS === 'android') {
-      NavigationBar.setVisibilityAsync('hidden');
-    }
-  }, []);
+  useAndroidNavBar();
 
-  // Animate content appearing when screen comes into focus
+  const { opacity, scale, show, hide } = useContentAnimation();
+
+  const bg = getBackgroundSize();
+
   useFocusEffect(
     React.useCallback(() => {
-      // Background já deve estar em -1000 (saindo do MainMenu)
-      // Apenas animar o conteúdo aparecendo
-      contentOpacity.setValue(0);
-      contentScale.setValue(0);
-
-      // Animate content appearing with hammer effect
-      Animated.parallel([
-        Animated.timing(contentOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(contentScale, {
-          toValue: 1,
-          tension: 100,
-          friction: 5,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, [contentOpacity, contentScale])
+      show();
+    }, [show])
   );
 
   const handleGoBack = () => {
-    // Animate content disappearing and background descending in parallel
-    Animated.parallel([
-      Animated.timing(contentOpacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(contentScale, {
-        toValue: 0.8,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      // Animar background descendo para 0 antes de voltar
+    hide(() => {
       animateBackground(0, 600).then(() => {
-        setTimeout(() => {
-          navigation.goBack();
-        }, 50);
+        setTimeout(() => navigation.goBack(), 50);
       });
     });
   };
 
   return (
     <>
-      <StatusBar hidden={true} />
+      <StatusBar hidden />
       <View style={styles.container}>
-        {/* Background image único */}
         <Animated.Image
           source={require('../../assets/images/background.png')}
           style={[
-            styles.backgroundImage,
-            {
-              transform: [{ translateY: backgroundAnim }],
-            },
+            styles.backgroundBase,
+            { width: bg.width, height: bg.height },
+            { transform: [{ translateY: backgroundAnim }] },
           ]}
-          resizeMode="stretch"
+          resizeMode="cover"
         />
+
         <ScrollView contentContainerStyle={styles.content}>
-          <Animated.View
-            style={{
-              opacity: contentOpacity,
-              transform: [{ scale: contentScale }],
-            }}
-          >
-
-
-            {/* About text */}
+          <Animated.View style={{ opacity, transform: [{ scale }] }}>
             <View style={styles.textContainer}>
-              {/* TÍTULO PRINCIPAL */}
               <Text style={styles.title}>🌱 About Agricola Counter</Text>
 
-              {/* INTRODUÇÃO E PROPÓSITO - Com toque temático */}
               <Text style={styles.description}>
                 Welcome to your new essential tool in the journey to build the best farm!
                 Agricola Counter was created so you can focus on planning your farm,
                 leaving the tedious counting of resources and points to us.
               </Text>
 
-              {/* PRINCIPAIS FUNCIONALIDADES */}
               <Text style={styles.description}>
-                Simplified Resource Control: Track all your resources (wood, clay, stone, food, etc.) quickly and intuitively. Never lose count of your sheep or grain again!
-                {/* Você pode substituir estes por bullet points programáticos se o seu estilo suportar */}
-              </Text>
-              <Text style={styles.description}>
-                Dynamic and Final Scoreboard: Record your buildings, animals, and crops for an instant score calculation. See the final ranking (with suspense) and discover who really built the most prosperous farm.
+                Simplified Resource Control: Track all your resources (wood, clay, stone, food,
+                etc.) quickly and intuitively. Never lose count of your sheep or grain again!
               </Text>
 
-              {/* SEÇÃO DE CRÉDITOS E INFORMAÇÕES */}
               <Text style={styles.description}>
-                This app is a fan project, made with passion by the Agricola community.
-                It aims exclusively to enhance the game experience.
+                Dynamic and Final Scoreboard: Record your buildings, animals, and crops for an
+                instant score calculation. See the final ranking (with suspense) and discover who
+                really built the most prosperous farm.
               </Text>
 
-              {/* INFORMAÇÕES DA VERSÃO */}
-              <Text style={styles.appInfo}>
-                Agricola Counter | Version 1.0.0
+              <Text style={styles.description}>
+                This app is a fan project.
               </Text>
+
+              {/* <Text style={styles.appInfo}>Agricola Counter | Version 1.0.0</Text> */}
             </View>
           </Animated.View>
-
-          {/* Restart button in bottom left corner */}
-          <Animated.View
-            style={[
-              styles.restartButtonContainer,
-              {
-                opacity: contentOpacity,
-                transform: [{ scale: contentScale }],
-              },
-            ]}
-          >
-            <ImageButton
-              imageSource={require('../../assets/images/restart_button.png')}
-              onPress={handleGoBack}
-              style={styles.restartButton}
-              imageStyle={styles.restartButtonImage}
-            />
-          </Animated.View>
         </ScrollView>
+
+        {/* Back button is outside the ScrollView so position: absolute works correctly. */}
+        <Animated.View style={[styles.backButtonContainer, { opacity, transform: [{ scale }] }]}>
+          <ImageButton
+            imageSource={require('../../assets/images/restart_button.png')}
+            onPress={handleGoBack}
+            style={styles.backButton}
+            imageStyle={styles.backButton}
+          />
+        </Animated.View>
       </View>
     </>
   );
@@ -161,58 +101,51 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#b0c550',
+    backgroundColor: Colors.appBackground,
   },
-  backgroundImage: {
+  backgroundBase: {
     position: 'absolute',
-    width: BACKGROUND_WIDTH,
-    height: BACKGROUND_HEIGHT,
     top: 0,
     left: 0,
   },
   content: {
     flexGrow: 1,
-    padding: 20,
+    padding: s(20),
   },
-
   textContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 15,
-    padding: 20,
+    borderRadius: s(15),
+    padding: s(20),
     marginTop: '90%',
   },
   title: {
-    fontSize: 28,
+    fontSize: s(28),
     fontWeight: 'bold',
-    color: '#4A7C59',
-    marginBottom: 15,
+    color: Colors.primary,
+    marginBottom: s(15),
     textAlign: 'center',
   },
   description: {
-    fontSize: 16,
+    fontSize: s(16),
     color: '#333',
-    lineHeight: 24,
-    marginBottom: 15,
+    lineHeight: s(24),
+    marginBottom: s(15),
     textAlign: 'justify',
   },
   appInfo: {
-    fontSize: 14,
+    fontSize: s(14),
     color: '#666',
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: s(20),
     fontStyle: 'italic',
   },
-  restartButtonContainer: {
+  backButtonContainer: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
+    bottom: s(20),
+    left: s(20),
   },
-  restartButton: {
-    width: 60,
-    height: 60,
-  },
-  restartButtonImage: {
-    width: 60,
-    height: 60,
+  backButton: {
+    width: s(60),
+    height: s(60),
   },
 });

@@ -1,60 +1,55 @@
 import React, { createContext, useContext, useRef, ReactNode } from 'react';
 import { Animated } from 'react-native';
+import { ANIMATION } from '../constants/animations';
 
 interface BackgroundContextType {
-    backgroundAnim: Animated.Value;
-    animateBackground: (toValue: number, duration?: number) => Promise<void>;
-    setBackgroundPosition: (value: number) => void;
-    getBackgroundPosition: () => number;
+  backgroundAnim: Animated.Value;
+  animateBackground: (toValue: number, duration?: number) => Promise<void>;
+  setBackgroundPosition: (value: number) => void;
+  getBackgroundPosition: () => number;
 }
 
-const BackgroundContext = createContext<BackgroundContextType | undefined>(
-    undefined
-);
+const BackgroundContext = createContext<BackgroundContextType | undefined>(undefined);
 
-export const BackgroundProvider: React.FC<{ children: ReactNode }> = ({
-    children,
-}) => {
-    // Inicia em 0 (posição do menu principal)
-    const backgroundAnim = useRef(new Animated.Value(0)).current;
+export const BackgroundProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Starts at 0 (main menu position).
+  const backgroundAnim = useRef(new Animated.Value(0)).current;
 
-    const animateBackground = (toValue: number, duration: number = 600): Promise<void> => {
-        return new Promise((resolve) => {
-            Animated.timing(backgroundAnim, {
-                toValue,
-                duration,
-                useNativeDriver: true,
-            }).start(() => resolve());
-        });
-    };
+  // Tracks the current translateY value without accessing the private `_value` field.
+  const currentPosition = useRef(0);
 
-    const setBackgroundPosition = (value: number) => {
-        backgroundAnim.setValue(value);
-    };
+  const animateBackground = (toValue: number, duration: number = ANIMATION.BACKGROUND_SLIDE_MS): Promise<void> =>
+    new Promise((resolve) => {
+      Animated.timing(backgroundAnim, {
+        toValue,
+        duration,
+        useNativeDriver: true,
+      }).start(() => {
+        currentPosition.current = toValue;
+        resolve();
+      });
+    });
 
-    const getBackgroundPosition = (): number => {
-        // @ts-ignore - accessing _value is needed to check current position
-        return backgroundAnim._value;
-    };
+  const setBackgroundPosition = (value: number) => {
+    backgroundAnim.setValue(value);
+    currentPosition.current = value;
+  };
 
-    return (
-        <BackgroundContext.Provider
-            value={{
-                backgroundAnim,
-                animateBackground,
-                setBackgroundPosition,
-                getBackgroundPosition,
-            }}
-        >
-            {children}
-        </BackgroundContext.Provider>
-    );
+  const getBackgroundPosition = (): number => currentPosition.current;
+
+  return (
+    <BackgroundContext.Provider
+      value={{ backgroundAnim, animateBackground, setBackgroundPosition, getBackgroundPosition }}
+    >
+      {children}
+    </BackgroundContext.Provider>
+  );
 };
 
 export const useBackground = (): BackgroundContextType => {
-    const context = useContext(BackgroundContext);
-    if (!context) {
-        throw new Error('useBackground must be used within a BackgroundProvider');
-    }
-    return context;
+  const context = useContext(BackgroundContext);
+  if (!context) {
+    throw new Error('useBackground must be used within a BackgroundProvider');
+  }
+  return context;
 };

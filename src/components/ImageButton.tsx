@@ -1,7 +1,6 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   TouchableOpacity,
-  Text,
   StyleSheet,
   ViewStyle,
   TextStyle,
@@ -11,12 +10,16 @@ import {
   ImageSourcePropType,
   View,
 } from 'react-native';
+import { usePressAnimation } from '../hooks';
+import { StyledText } from './StyledText';
+import { s } from '../utils/scale';
 
 interface ImageButtonProps {
   imageSource: ImageSourcePropType;
   onPress: () => void;
   style?: ViewStyle;
   imageStyle?: ImageStyle;
+  /** Optional text displayed over the image using the Shadow+Outline font effect. */
   text?: string;
   textStyle?: TextStyle;
   children?: React.ReactNode;
@@ -31,54 +34,24 @@ export const ImageButton: React.FC<ImageButtonProps> = ({
   textStyle,
   children,
 }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.85,
-      friction: 5,
-      tension: 100,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 4,
-      tension: 80,
-      useNativeDriver: true,
-    }).start();
-  };
+  const { onPressIn, onPressOut, animatedStyle } = usePressAnimation();
 
   return (
-    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
+    <Animated.View style={[animatedStyle, style]}>
       <TouchableOpacity
         onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
         activeOpacity={1}
         style={styles.container}
       >
-        <Image
-          source={imageSource}
-          style={[styles.image, imageStyle]}
-          resizeMode="contain"
-        />
+        <Image source={imageSource} style={[styles.image, imageStyle]} resizeMode="contain" />
+
         {children ? (
-          <View style={styles.textContainer}>
-            {children}
-          </View>
+          <View style={styles.textContainer}>{children}</View>
         ) : text ? (
           <View style={styles.textContainer}>
-            {/* Shadow text layer (bottom) */}
-            <Text style={[styles.textShadow, textStyle]}>
-              {text}
-            </Text>
-            {/* Outline text layer (top) */}
-            <Text style={[styles.textOutline, textStyle]}>
-              {text}
-            </Text>
+            <StyledText style={[styles.textBase, textStyle]}>{text}</StyledText>
           </View>
         ) : null}
       </TouchableOpacity>
@@ -93,24 +66,15 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   image: {
-    width: '100%',    // Usa 100% do container pai
-    height: '100%',   // Usa 100% do container pai
+    width: '100%',
+    height: '100%',
   },
   textContainer: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  textShadow: {
-    position: 'absolute',
-    fontSize: 32,
-    fontFamily: 'Shadow',
-    color: '#f9c32b',
-  },
-  textOutline: {
-    position: 'absolute',
-    fontSize: 32,
-    fontFamily: 'Outline',
-    color: '#000000',
+  textBase: {
+    fontSize: s(32),
   },
 });

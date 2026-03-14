@@ -1,21 +1,12 @@
 import React, { useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  Animated,
-  Dimensions,
-} from 'react-native';
+import { View, Image, StyleSheet, Animated } from 'react-native';
 import { Resource } from '../types';
-
-const { width } = Dimensions.get('window');
+import { Colors } from '../constants/colors';
+import { s } from '../utils/scale';
 
 interface ResourceCounterProps {
   resource: Resource;
-  onIncrement?: () => void;
-  onDecrement?: () => void;
-  layout?: 'vertical' | 'horizontal'; // vertical for 2 players, horizontal for 3-4 players
+  layout?: 'vertical' | 'horizontal';
 }
 
 export const ResourceCounter: React.FC<ResourceCounterProps> = ({
@@ -25,63 +16,38 @@ export const ResourceCounter: React.FC<ResourceCounterProps> = ({
   const countAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Animate count change
     Animated.sequence([
-      Animated.timing(countAnim, {
-        toValue: 1.3,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(countAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
+      Animated.timing(countAnim, { toValue: 1.3, duration: 100, useNativeDriver: true }),
+      Animated.timing(countAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
     ]).start();
-  }, [resource.count]);
+  }, [resource.count]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isHorizontal = layout === 'horizontal';
+  const countAnimStyle = { transform: [{ scale: countAnim }] };
+
+  const fontSize = isHorizontal ? s(104) : s(112);
 
   return (
     <View style={styles.container}>
-
-      {/* Center content - Icon and count */}
-      <View style={[
-        styles.centerContent,
-        layout === 'horizontal' && styles.centerContentHorizontal
-      ]}>
-        <View style={[
-          styles.iconContainer,
-          layout === 'horizontal' && styles.iconContainerHorizontal
-        ]}>
+      <View style={[styles.centerContent, isHorizontal && styles.centerContentHorizontal]}>
+        <View style={[styles.iconContainer, isHorizontal && styles.iconContainerHorizontal]}>
           <Image
             source={resource.icon}
-            style={[
-              styles.icon,
-              layout === 'horizontal' && styles.iconHorizontal
-            ]}
+            style={[styles.icon, isHorizontal && styles.iconHorizontal]}
             resizeMode="contain"
           />
         </View>
-        <View style={[
-          styles.countContainer,
-          layout === 'horizontal' && styles.countContainerHorizontal
-        ]}>
+
+        <View style={[styles.countContainer, isHorizontal && styles.countContainerHorizontal]}>
           {/* Shadow text layer (bottom) */}
           <Animated.Text
-            style={[
-              styles.countShadow,
-              layout === 'horizontal' && styles.countShadowHorizontal,
-              { transform: [{ scale: countAnim }] }
-            ]}
+            style={[styles.countShadow, { fontSize }, countAnimStyle]}
           >
             {resource.count}
           </Animated.Text>
           {/* Outline text layer (top) */}
           <Animated.Text
-            style={[
-              styles.countOutline,
-              layout === 'horizontal' && styles.countOutlineHorizontal,
-              { transform: [{ scale: countAnim }] }
-            ]}
+            style={[styles.countOutline, { fontSize }, countAnimStyle]}
           >
             {resource.count}
           </Animated.Text>
@@ -111,53 +77,45 @@ const styles = StyleSheet.create({
   },
   centerContentHorizontal: {
     flexDirection: 'row',
-    gap: 20,
+    gap: s(20),
   },
   iconContainer: {
     position: 'relative',
-    marginBottom: 100,
+    marginBottom: s(100),
   },
   iconContainerHorizontal: {
     marginBottom: 0,
   },
   icon: {
-    width: 220,
-    height: 220,
+    width: s(220),
+    height: s(220),
   },
   iconHorizontal: {
-    width: 160,
-    height: 160,
+    width: s(160),
+    height: s(160),
   },
   countContainer: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 220,
-    paddingHorizontal: 30,
+    minWidth: s(220),
+    paddingHorizontal: s(30),
   },
   countContainerHorizontal: {
-    minWidth: 150,
-    paddingHorizontal: 20,
+    minWidth: s(150),
+    paddingHorizontal: s(20),
     marginBottom: 0,
   },
   countShadow: {
     position: 'absolute',
-    fontSize: width * 0.14, // Responsive font size based on screen width
     fontFamily: 'Shadow',
-    color: '#f9c32b',
+    color: Colors.textShadow,
     textAlign: 'center',
-  },
-  countShadowHorizontal: {
-    fontSize: width * 0.13, // Slightly smaller for horizontal layout
   },
   countOutline: {
     position: 'absolute',
-    fontSize: width * 0.14, // Responsive font size based on screen width
     fontFamily: 'Outline',
-    color: '#000000',
+    color: Colors.black,
     textAlign: 'center',
-  },
-  countOutlineHorizontal: {
-    fontSize: width * 0.13, // Slightly smaller for horizontal layout
   },
 });

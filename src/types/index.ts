@@ -1,4 +1,4 @@
-// Type definitions for Agricola Counter app
+import { ImageSourcePropType } from 'react-native';
 
 export type ResourceType =
   | 'soil'
@@ -19,7 +19,7 @@ export type ResourceType =
 export interface Resource {
   type: ResourceType;
   name: string;
-  icon: any; // Image source
+  icon: ImageSourcePropType;
   count: number;
 }
 
@@ -30,10 +30,12 @@ export interface Player {
   score: number;
 }
 
+export type GamePhase = 'color-selection' | 'resource-counting' | 'scoring';
+
 export interface GameState {
   playerCount: number;
   players: Player[];
-  currentPhase: 'color-selection' | 'resource-counting' | 'scoring';
+  currentPhase: GamePhase;
   playersReady: boolean[];
   isFarmersOfTheMoor: boolean;
 }

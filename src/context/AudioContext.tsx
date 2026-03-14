@@ -1,20 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { useAudioPlayer, AudioSource } from 'expo-audio';
 
-// Import all track files statically (required by React Native bundler)
-const track1 = require('../../assets/music/track1.mp3') as AudioSource;
-const track2 = require('../../assets/music/track2.mp3') as AudioSource;
-// Add more tracks here as needed:
-// const track3 = require('../../assets/music/track3.mp3') as AudioSource;
-// const track4 = require('../../assets/music/track4.mp3') as AudioSource;
-
-// Array of all tracks to play in sequence
+// All tracks must be required statically — the React Native bundler cannot
+// resolve dynamic require() calls.
 const TRACKS: AudioSource[] = [
-  track1,
-  track2,
-  // Add more tracks here:
-  // track3,
-  // track4,
+  require('../../assets/music/track1.mp3') as AudioSource,
+  require('../../assets/music/track2.mp3') as AudioSource,
 ];
 
 interface AudioContextData {
@@ -24,34 +16,35 @@ interface AudioContextData {
 
 const AudioContext = createContext<AudioContextData>({} as AudioContextData);
 
-export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isMuted, setIsMuted] = useState(false);
+// ---------------------------------------------------------------------------
+// Web stub — audio is disabled on web for performance and to avoid browser
+// autoplay-policy errors.
+// ---------------------------------------------------------------------------
+const WebAudioProvider: React.FC<{ children: ReactNode }> = ({ children }) => (
+  <AudioContext.Provider value={{ isMuted: true, toggleMute: () => {} }}>
+    {children}
+  </AudioContext.Provider>
+);
+
+// ---------------------------------------------------------------------------
+// Native audio provider — full track-looping implementation.
+// ---------------------------------------------------------------------------
+const NativeAudioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [isMuted, setIsMuted] = useState(true); // Music temporarily disabled
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  const isInitialMount = React.useRef(true);
+  const isInitialMount = useRef(true);
 
   const player = useAudioPlayer(TRACKS[0]);
 
+  // Start playback on mount and clean up on unmount.
   useEffect(() => {
-    if (TRACKS.length === 0) {
-      console.error('No tracks found!');
-      return;
-    }
-
-    // Start playing on mount
     player.volume = 1.0;
-    player.play();
+    // player.play(); // Music temporarily disabled
+    return () => { player.remove(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return () => {
-      // Cleanup on unmount
-      player.remove();
-    };
-  }, []);
-
-  // Effect to handle track changes
+  // Load and play the new track whenever the index advances.
   useEffect(() => {
-    if (TRACKS.length === 0) return;
-
-    // Skip on initial mount (first track is already loaded)
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
@@ -59,42 +52,31 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const playNextTrack = async () => {
       try {
-        // Replace the current audio source
         await player.replace(TRACKS[currentTrackIndex]);
-
-        // Only play if not muted
-        if (!isMuted) {
-          await player.play();
-        }
+        if (!isMuted) await player.play();
       } catch (error) {
         console.error('Error playing next track:', error);
       }
     };
 
     playNextTrack();
-  }, [currentTrackIndex]);
+  }, [currentTrackIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Monitor playback and switch tracks when current one ends
+  // Poll playback status to advance to the next track when one finishes.
   useEffect(() => {
-    if (TRACKS.length === 0) return;
-
     const interval = setInterval(async () => {
       try {
         const status = await player.currentStatus;
-
-        // Check if track has finished playing
         if (status && !status.playing && status.currentTime >= status.duration - 0.5) {
-          // Move to next track
-          const nextIndex = (currentTrackIndex + 1) % TRACKS.length;
-          setCurrentTrackIndex(nextIndex);
+          setCurrentTrackIndex((prev) => (prev + 1) % TRACKS.length);
         }
-      } catch (error) {
-        // Ignore errors during status check
+      } catch {
+        // Ignore transient errors during status polling.
       }
-    }, 1000); // Check every second
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [currentTrackIndex, isMuted]);
+  }, [currentTrackIndex, isMuted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleMute = () => {
     try {
@@ -103,7 +85,7 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       } else {
         player.pause();
       }
-      setIsMuted(!isMuted);
+      setIsMuted((prev) => !prev);
     } catch (error) {
       console.error('Error toggling sound:', error);
     }
@@ -116,7 +98,17 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   );
 };
 
-export const useAudio = () => {
+// ---------------------------------------------------------------------------
+// Public export — selects the right implementation by platform.
+// ---------------------------------------------------------------------------
+export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
+  Platform.OS === 'web' ? (
+    <WebAudioProvider>{children}</WebAudioProvider>
+  ) : (
+    <NativeAudioProvider>{children}</NativeAudioProvider>
+  );
+
+export const useAudio = (): AudioContextData => {
   const context = useContext(AudioContext);
   if (!context) {
     throw new Error('useAudio must be used within an AudioProvider');

@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  ScrollView,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
+import { Colors } from '../constants/colors';
+import { s } from '../utils/scale';
 
 interface ColorPickerProps {
   currentColor: string;
@@ -14,17 +9,16 @@ interface ColorPickerProps {
   playerId: number;
 }
 
-const COLORS = [
+const PLAYER_COLORS = [
   '#4ecda9ff', // Teal
   '#eee01bff', // Yellow
-  '#e1ba66ff', // Wood (Brown)
-  '#7f1522', // Vinho (Wine Red)
+  '#e1ba66ff', // Wood
+  '#7f1522',   // Wine Red
 ];
 
 export const ColorPicker: React.FC<ColorPickerProps> = ({
   currentColor,
   onColorSelect,
-  playerId,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -35,27 +29,23 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.colorButton}
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={styles.instructionText}>
-          Click to choose a color
-        </Text>
+      <TouchableOpacity style={styles.colorButton} onPress={() => setModalVisible(true)}>
+        <Text style={styles.instructionText}>Click to choose a color</Text>
         <View style={[styles.colorPreview, { backgroundColor: currentColor }]} />
       </TouchableOpacity>
 
       <Modal
         animationType="fade"
-        transparent={true}
+        transparent
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Pick your color</Text>
+
             <ScrollView contentContainerStyle={styles.colorGrid}>
-              {COLORS.map((color) => (
+              {PLAYER_COLORS.map((color) => (
                 <TouchableOpacity
                   key={color}
                   style={[
@@ -67,11 +57,9 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                 />
               ))}
             </ScrollView>
-            <View style={{ alignItems: 'center' }}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setModalVisible(false)}
-              >
+
+            <View style={styles.closeButtonWrapper}>
+              <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.closeButtonText}>Ready</Text>
               </TouchableOpacity>
             </View>
@@ -92,23 +80,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   instructionText: {
-    fontSize: 16,
+    fontSize: s(16),
     fontWeight: 'bold',
-    color: '#FFF',
+    color: Colors.white,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: s(20),
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
   colorPreview: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: s(80),
+    height: s(80),
+    borderRadius: s(40),
     borderWidth: 4,
-    borderColor: '#FFF',
+    borderColor: Colors.white,
     elevation: 5,
-    shadowColor: '#000',
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -117,20 +105,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: Colors.modalOverlay,
   },
   modalContent: {
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: Colors.white,
+    borderRadius: s(20),
+    padding: s(20),
     width: '50%',
     maxHeight: '70%',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: s(20),
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: s(20),
     color: '#333',
   },
   colorGrid: {
@@ -139,34 +127,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   colorOption: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    margin: 8,
+    width: s(60),
+    height: s(60),
+    borderRadius: s(30),
+    margin: s(8),
     borderWidth: 3,
-    borderColor: '#FFF',
+    borderColor: Colors.white,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
   selectedColor: {
     borderWidth: 4,
-    borderColor: '#000',
+    borderColor: Colors.black,
+  },
+  closeButtonWrapper: {
+    alignItems: 'center',
   },
   closeButton: {
-    backgroundColor: '#4A7C59',
-    width: 150,
-    padding: 15,
-    borderRadius: 20,
-    marginTop: 20,
-    alignSelf: 'center',
+    backgroundColor: Colors.primary,
+    width: s(150),
+    padding: s(15),
+    borderRadius: s(20),
+    marginTop: s(20),
   },
   closeButtonText: {
-    color: '#FFF',
+    color: Colors.white,
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: s(16),
     fontWeight: 'bold',
   },
 });

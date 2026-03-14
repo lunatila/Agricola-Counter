@@ -3,3 +3,4 @@ export { ResourceCounter } from './ResourceCounter';
 export { ColorPicker } from './ColorPicker';
 export { ImageButton } from './ImageButton';
 export { AdBanner } from './AdBanner';
+export { StyledText } from './StyledText';
